@@ -2,8 +2,6 @@ const express = require("express");
 const path = require("path");
 const { open } = require("sqlite");
 const sqlite3 = require('better-sqlite3');
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
 const cors = require("cors"); // Import CORS package
 
 const app = express();
