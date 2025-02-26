@@ -1,31 +1,17 @@
 const express = require("express");
 const path = require("path");
-const { open } = require("sqlite");
-const sqlite3 = require('sqlite3');
 const cors = require("cors"); // Import CORS package
 
 const app = express();
 app.use(express.json());
 app.use(cors()); // Enable CORS for all requests
 
-// Database connection
-const dbPath = path.join(__dirname, "shop_billing.db");
-let db = null;
 
-const initializeDBAndServer = async () => {
-  try {
-    db = await open({
-      filename: dbPath,
-      driver: sqlite3.Database,
-    });
+
     app.listen(5000, () => {
       console.log("Server Running at http://localhost:5000/");
     });
-  } catch (e) {
-    console.log(`DB Error: ${e.message}`);
-    process.exit(1);
-  }
-};
+ 
 
 initializeDBAndServer();
 
