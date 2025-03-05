@@ -45,3 +45,25 @@ app.get("/BaseOptions/:id", async (req, res) => {
       console.log('data sent')
 });
 
+
+let paymentStatus = { isPaid: false }; // ✅ Store payment status
+
+// ✅ Route to get payment status
+app.get("/payment-status", (req, res) => {
+    res.json(paymentStatus);
+});
+
+// ✅ Route to manually update payment (Simulated Webhook)
+app.post("/update-payment", (req, res) => {
+    const { isPaid } = req.body;
+    if (isPaid) {
+        paymentStatus.isPaid = true;
+    }
+    res.json({ message: "Payment status updated", status: paymentStatus });
+});
+
+// ✅ Reset payment status (For testing)
+app.post("/reset-payment", (req, res) => {
+    paymentStatus.isPaid = false;
+    res.json({ message: "Payment reset" });
+});
