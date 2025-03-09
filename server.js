@@ -67,3 +67,56 @@ app.post("/reset-payment", (req, res) => {
     paymentStatus.isPaid = false;
     res.json({ message: "Payment reset" });
 });
+
+app.post("/save-bill", async (req, res) => {
+  const { todoList, total, date, time, year } = req.body;
+  try {
+    const query = `INSERT INTO bills (total_amount, date, time, year) VALUES (?, ?, ?, ?)`;
+    const result = await db.run(query, [total, date, time, year]);
+    const billId = result.lastID;
+    try {
+      // Prepare the insert query
+      const query = `INSERT INTO bill_items (bill_id, product, Base, Liters, quantity, discount, gst, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+      // Iterate over each item and insert separately
+      for (const item of todoList) {
+          await db.run(query, [
+              billId,
+              item.product,
+              item.base,
+              item.liters,
+              item.quantity,
+              item.discount,
+              item.gst,
+              item.price
+          ]);
+      }
+  } catch (err) {
+      console.error("SQL Error:", err);
+      res.status(500).json({ error: err.message });
+  }
+    res.json({ message: "Bill saved successfully", billId: result.lastID });
+  } catch (err) {
+    console.error("SQL Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+
+});
+
+// Fetch all bills with their items
+app.get("/bills", (req, res) => {
+  db.all(`SELECT * FROM bills`, (err, bills) => {
+      if (err) return res.status(500).json({ message: "Error retrieving bills" });
+      const billIds = bills.map((bill) => bill.id);
+      if (billIds.length === 0) return res.json([]);
+      const placeholders = billIds.map(() => "?").join(",");
+      db.all(`SELECT * FROM bill_items WHERE bill_id IN (${placeholders})`, billIds, (err, items) => {
+          if (err) return res.status(500).json({ message: "Error retrieving bill items" });
+          const billsWithItems = bills.map((bill) => ({
+              ...bill,
+              items: items.filter((item) => item.bill_id === bill.id),
+          }));
+          res.json(billsWithItems);
+      });
+  });
+});
+
