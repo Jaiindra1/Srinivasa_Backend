@@ -224,3 +224,17 @@ app.patch("/loans/:id", async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+app.get("/gloans", async (req, res) => {
+  try {
+    const query = `SELECT * FROM loans 
+where status = 'Closed';`;
+    const response = await db.all(query);
+ // Debugging
+
+    res.json(response); // ✅ Send response to client
+  } catch (error) {
+    console.error("Error fetching loans:", error);
+    res.status(500).json({ error: "Internal Server Error" }); // ✅ Handle errors properly
+  }
+});
