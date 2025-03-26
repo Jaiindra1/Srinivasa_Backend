@@ -32,11 +32,47 @@ initializeDBAndServer();
 
 // ✅ Sample API Route
 app.get('/Products', async (req, res) => {
-    const query = `SELECT * FROM Products;`;
+    const query = `SELECT * FROM Products where Company != "sheen Lac";`;
     const result = await db.all(query);
     console.log('Fetching Products.....');
     res.json(result); // Send the actual database data
 });
+
+app.get('/SheenLac', async (req, res) => {
+  try {
+    const query = `SELECT * FROM Products WHERE LOWER(Company) = LOWER(?);`;
+    const result = await db.all(query, ['sheen Lac']);
+    
+    console.log('Fetching Products.....');
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching products:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get("/SheenLac/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate input
+    if (!id) return res.status(400).json({ error: 'Product ID is required' });
+
+    const query = `SELECT * FROM Sheenlac WHERE ProductId = ?`;
+    const result = await db.all(query, [id]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    console.log('Data sent');
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching product by ID:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 app.get("/BaseOptions/:id", async (req, res) => {
       const { id } = req.params; // Extract Product ID from request params
@@ -161,7 +197,7 @@ const result = await db.all(query, [month.padStart(2, "0"), day.padStart(2, "0")
 });
 
 // API to Add Loan Details
-app.post("/add-loan", (req, res) => {
+app.post("/add-loan",async (req, res) => {
   const { candidateName, mobileNumber, loanProduct, address, EmulsionsData, createdAt } = req.body;
 
   if (!candidateName || !mobileNumber || !loanProduct || !address) {
@@ -184,20 +220,20 @@ app.post("/add-loan", (req, res) => {
                VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`;  
   const values = [candidateName, mobileNumber, loanProduct, address, productDetails, price, gst, createdAt];
 
-  db.run(sql, values, function (err) {
+  const result = await db.run(sql, values, function (err) {
       if (err) {
           console.error("Error inserting loan:", err);
           return res.status(500).json({ error: "Database error" });
       }
-      console.log("Loan record inserted successfully!");
-      res.status(201).json({ message: "Loan added successfully", loanId: this.lastID });
   });
+  res.status(201).json({ message: "Loan added successfully", loanId: this.lastID });
 });
 
 // API to Fetch All Loans
 app.get("/loans", async (req, res) => {
   try {
-    const query = `SELECT * FROM loans;`;
+    const query = `SELECT * FROM loans 
+where status != 'Closed';`;
     const response = await db.all(query);
  // Debugging
 
@@ -227,11 +263,10 @@ app.patch("/loans/:id", async (req, res) => {
 
 app.get("/gloans", async (req, res) => {
   try {
-    const query = `SELECT * FROM loans 
-where status = 'Closed';`;
+    const query = `SELECT * FROM loans;`;
     const response = await db.all(query);
  // Debugging
-
+console.log(response);
     res.json(response); // ✅ Send response to client
   } catch (error) {
     console.error("Error fetching loans:", error);
