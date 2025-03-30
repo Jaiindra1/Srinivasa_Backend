@@ -197,36 +197,34 @@ const result = await db.all(query, [month.padStart(2, "0"), day.padStart(2, "0")
 });
 
 // API to Add Loan Details
-app.post("/add-loan",async (req, res) => {
+app.post("/add-loan", async (req, res) => {
   const { candidateName, mobileNumber, loanProduct, address, EmulsionsData, createdAt } = req.body;
-
-  if (!candidateName || !mobileNumber || !loanProduct || !address) {
+  console.log(candidateName, mobileNumber, loanProduct, address, EmulsionsData, createdAt);
+  if (!candidateName || !mobileNumber ) {
       return res.status(400).json({ error: "All required fields must be filled." });
   }
 
   let productDetails = "";
-  let price = "0";
-  let gst = "0";
+  let price = 0;
+  let gst = 0;
 
-  if (EmulsionsData?.todoList && EmulsionsData.todoList.length > 0) {
-      const item = EmulsionsData.todoList[0]; 
-      productDetails = `${item.company} ${item.base} ${item.product} ${item.liters} ${item.quantity}`;
-      price = item.price;
-      gst = item.gst;
+  if (Array.isArray(EmulsionsData) && EmulsionsData.length > 0) {
+      productDetails = EmulsionsData.map(item => `${item.company} ${item.base} ${item.product} ${item.liters} ${item.quantity}`).join(", ");
+      price = EmulsionsData.reduce((total, item) => total + parseFloat(item.price || 0), 0);
+      gst = EmulsionsData.reduce((total, item) => total + parseFloat(item.gst || 0), 0);
   }
 
-  // ✅ Include the createdAt field in the INSERT query
   const sql = `INSERT INTO loans (candidateName, mobileNumber, loanProduct, address, LoanData, Price, status, GST, createdAt) 
                VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`;  
   const values = [candidateName, mobileNumber, loanProduct, address, productDetails, price, gst, createdAt];
 
-  const result = await db.run(sql, values, function (err) {
-      if (err) {
-          console.error("Error inserting loan:", err);
-          return res.status(500).json({ error: "Database error" });
-      }
-  });
-  res.status(201).json({ message: "Loan added successfully", loanId: this.lastID });
+  try {
+      const result = await db.run(sql, values);
+      res.status(201).json({ message: "Loan added successfully", loanId: result.lastID });
+  } catch (err) {
+      console.error("Error inserting loan:", err);
+      res.status(500).json({ error: "Database error" });
+  }
 });
 
 // API to Fetch All Loans
@@ -243,6 +241,7 @@ where status != 'Closed';`;
     res.status(500).json({ error: "Internal Server Error" }); // ✅ Handle errors properly
   }
 });
+
 app.patch("/loans/:id", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -266,10 +265,61 @@ app.get("/gloans", async (req, res) => {
     const query = `SELECT * FROM loans;`;
     const response = await db.all(query);
  // Debugging
-console.log(response);
     res.json(response); // ✅ Send response to client
   } catch (error) {
     console.error("Error fetching loans:", error);
     res.status(500).json({ error: "Internal Server Error" }); // ✅ Handle errors properly
   }
 });
+
+app.get("/ploans", async (req, res) => {
+  try {
+    const query = `SELECT sum(Price) as Price, count(id) as ID FROM loans 
+where status != 'Closed';`;
+    const response = await db.all(query);
+ // Debugging
+    res.json(response); // ✅ Send response to client
+  } catch (error) {
+    console.error("Error fetching loans:", error);
+    res.status(500).json({ error: "Internal Server Error" }); // ✅ Handle errors properly
+  }
+});
+
+app.get("/ActiveBorrowers", async (req, res) => {
+  try {
+    const query = `SELECT COUNT(candidateName) as Number FROM loans;`;
+    const response = await db.all(query);
+
+    if (response.length > 0) {
+      res.json(response[0]); // ✅ Send only the first object
+    } else {
+      res.json({ Number: 0 }); // ✅ Handle empty response
+    }
+  } catch (error) {
+    console.error("Error fetching loans:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get('/totalProducts', async (req, res) => {
+  try {
+    const query = `SELECT COUNT(ProductName) AS total FROM Products;`;
+    const result = await db.get(query);
+    res.json(result || { total: 0 }); // Ensure response even if no data
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/recent-loans", async (req, res) => {
+  try {
+    const query = `SELECT candidateName, Price, createdAt as time FROM loans ORDER BY createdAt DESC LIMIT 5;`;
+    const response = await db.all(query);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching recent loans:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
