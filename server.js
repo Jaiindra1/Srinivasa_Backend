@@ -322,4 +322,40 @@ app.get("/recent-loans", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+app.get('/cpvc', async (req, res) => {
+  try {
+    const query = `SELECT * FROM otherproducts where category = "CPVC";`;
+    const response = await db.all(query);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching recent loans:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+app.get('/upvc', async (req, res) => {
+  try {
+    const query = `SELECT * FROM otherproducts where category = "UPVC";`;
+    const response = await db.all(query);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching recent loans:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+app.get('/Tanks', async (req, res) => {
+  res.json("/tanks");
+});
+app.get("/:category/product/:name", async (req, res) => {
+  const { category, name } = req.params;
+
+  try {
+    const query = `SELECT * FROM cpvcorpvc WHERE product_name = ?;`;
+    const response = await db.all(query, [req.params.name]);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  
+  });
 
