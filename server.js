@@ -343,7 +343,14 @@ app.get('/upvc', async (req, res) => {
   }
 });
 app.get('/Tanks', async (req, res) => {
-  res.json("/tanks");
+  try {
+    const query = `SELECT * FROM otherproducts where category = "Tanks";`;
+    const response = await db.all(query);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching recent loans:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 app.get("/:category/product/:name", async (req, res) => {
   const { category, name } = req.params;
@@ -358,4 +365,26 @@ app.get("/:category/product/:name", async (req, res) => {
   }
   
   });
+app.get("/3-layer", async (req, res) => {
+  try {
+    const query = `SELECT * FROM Tanks WHERE layer = '3 Layer'`;
+    const response = await db.all(query);
+    res.json(response);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching 3 Layer data.");
+  }
+});
+
+// Route to fetch 4 Layer Tanks
+app.get("/4-layer", async (req, res) => {
+  try {
+    const result =  `SELECT * FROM Tanks WHERE layer = '4 Layer'`;
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching 4 Layer data.");
+  }
+});
+
 
